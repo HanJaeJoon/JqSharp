@@ -1,9 +1,24 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace JqSharp;
 
 internal static partial class Jq
 {
+    // Called on entry to every recursion over values and queries: deep input fails with an error instead of
+    // overflowing the stack (Go grows its stacks, .NET threads have a fixed one, 1 MB by default).
+    internal static void EnsureStack()
+    {
+        try
+        {
+            RuntimeHelpers.EnsureSufficientExecutionStack();
+        }
+        catch (InsufficientExecutionStackException)
+        {
+            throw new SimpleError("exceeded max depth");
+        }
+    }
+
     // Returns the jq type name of v; v must be one of the value types JqSharp works with.
     internal static string TypeOf(object? v)
     {

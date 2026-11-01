@@ -514,6 +514,7 @@ internal static partial class Jq
 
     private static object? FuncContains(object? v, object? x)
     {
+        EnsureStack();
         return BinopTypeSwitch<object?>(v, x,
             static (l, r) => l == r,
             static (l, r) => l == r,
@@ -1201,6 +1202,7 @@ internal static partial class Jq
 
     private static List<object?> Flatten(List<object?> xs, List<object?> vs, double depth)
     {
+        EnsureStack();
         foreach (object? v in vs)
         {
             if (v is List<object?> a && depth != 0)
@@ -1602,6 +1604,7 @@ internal static partial class Jq
     // Returns the updated value or a JqException.
     private static object? Update(object? v, List<object?> path, int depth, object? n, Allocator? a)
     {
+        EnsureStack();
         if (depth == path.Count)
         {
             return n;
@@ -1813,6 +1816,7 @@ internal static partial class Jq
     // Removes the Empty placeholders; they only live in containers the allocator created, so input values are untouched.
     private static object? DeleteEmpty(object? v)
     {
+        EnsureStack();
         if (ReferenceEquals(v, Empty))
         {
             return null;
@@ -2115,6 +2119,12 @@ internal static partial class Jq
         bool global = flags.IndexOf('g') >= 0;
         while (match.Success)
         {
+            // .NET steps over a string by UTF-16 code units; RE2 never reports a match inside a surrogate pair.
+            if (match.Index > 0 && match.Index < s.Length && char.IsSurrogatePair(s[match.Index - 1], s[match.Index]))
+            {
+                match = match.NextMatch();
+                continue;
+            }
             List<object?> captures = new(m.Names.Count);
             for (int j = 1; j <= m.Names.Count; j++)
             {
@@ -2237,6 +2247,12 @@ internal static partial class Jq
                 {
                     sb.Append(pattern[++i]);
                 }
+                continue;
+            }
+            if (c == '.')
+            {
+                // RE2's . matches a code point; .NET's matches a UTF-16 code unit, half of a surrogate pair.
+                sb.Append(@"(?:[\uD800-\uDBFF][\uDC00-\uDFFF]|.)");
                 continue;
             }
             if (c != '(')

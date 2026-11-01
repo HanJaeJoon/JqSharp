@@ -7,6 +7,7 @@ internal static partial class Jq
     // Compares l and r in jq order: null < false < true < numbers < strings < arrays < objects.
     internal static int Compare(object? l, object? r)
     {
+        EnsureStack();
         return BinopTypeSwitch(l, r,
             static (l, r) => l.CompareTo(r),
             static (l, r) =>

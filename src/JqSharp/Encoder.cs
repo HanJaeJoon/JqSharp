@@ -90,6 +90,7 @@ internal sealed class Encoder
 
     private void Encode(object? v)
     {
+        Jq.EnsureStack();
         switch (v)
         {
             case null:

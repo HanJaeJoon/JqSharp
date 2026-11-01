@@ -113,8 +113,36 @@ public sealed class JqCode
     /// <returns>
     /// The output values, produced lazily. Enumeration throws a <see cref="JqException"/> when the query fails;
     /// <see cref="JqHaltException"/> means the query called <c>halt</c> or <c>halt_error</c>.
+    /// Each enumeration runs the query again from the start.
     /// </returns>
+    /// <remarks>
+    /// The outputs can share arrays and objects with the input, the variable values and the constants of the query,
+    /// so treat them as read-only: copy a value before changing it, or later runs can see the change.
+    /// </remarks>
+    /// <exception cref="ArgumentException">The input or a variable value contains an unsupported type.</exception>
+    /// <exception cref="JqException">The input or a variable value is nested too deeply ("exceeded max depth").</exception>
     public IEnumerable<object?> Run(object? input, params object?[] values)
+    {
+        return Run(input, CancellationToken.None, values);
+    }
+
+    /// <summary>
+    /// Runs the query against an input value, stopping when <paramref name="cancellationToken"/> is canceled
+    /// (gojq's <c>RunWithContext</c>).
+    /// </summary>
+    /// <param name="input">The input value; see <see cref="Run(object?, object?[])"/>.</param>
+    /// <param name="cancellationToken">
+    /// Checked before every instruction of the interpreter, so a query that never yields (like <c>def f: 1 + f; f</c>)
+    /// stops too. Work inside a single builtin, such as sorting a large array, is not interrupted.
+    /// </param>
+    /// <param name="values">The values of the variables declared in <see cref="JqCompilerOptions.Variables"/>, in the same order.</param>
+    /// <returns>
+    /// The output values, produced lazily, as for <see cref="Run(object?, object?[])"/>. Enumeration throws an
+    /// <see cref="OperationCanceledException"/> once the token is canceled.
+    /// </returns>
+    /// <exception cref="ArgumentException">The input or a variable value contains an unsupported type.</exception>
+    /// <exception cref="JqException">The input or a variable value is nested too deeply ("exceeded max depth").</exception>
+    public IEnumerable<object?> Run(object? input, CancellationToken cancellationToken, params object?[] values)
     {
         values ??= Array.Empty<object?>();
         if (values.Length > _variables.Count)
@@ -130,7 +158,7 @@ public sealed class JqCode
         {
             vars[i] = JqValue.Normalize(values[i]);
         }
-        return Iterate(new Env(_codes, JqValue.Normalize(input), vars));
+        return Iterate(_codes, JqValue.Normalize(input), vars, cancellationToken);
     }
 
     private static IEnumerable<object?> Fail(JqException err)
@@ -141,8 +169,10 @@ public sealed class JqCode
 #pragma warning restore CS0162
     }
 
-    private static IEnumerable<object?> Iterate(Env env)
+    // Creates the Env on each enumeration, so that enumerating the results again reruns the query.
+    private static IEnumerable<object?> Iterate(Code[] codes, object? input, object?[] vars, CancellationToken cancellationToken)
     {
+        Env env = new(codes, input, vars, cancellationToken);
         while (env.Next(out object? v))
         {
             if (v is JqException err)

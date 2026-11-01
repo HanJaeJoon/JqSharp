@@ -48,6 +48,7 @@ internal static class Decoder
 
     private static object? ParseValue(string s, ref int pos, int depth, bool top)
     {
+        Jq.EnsureStack();
         SkipSpace(s, ref pos);
         if (pos >= s.Length)
         {
@@ -191,7 +192,8 @@ internal static class Decoder
             }
             if (s[pos + i] != literal[i])
             {
-                throw InvalidChar(s, pos + i, "in literal " + literal + " (expecting '" + literal[i] + "')");
+                pos += i;
+                throw InvalidChar(s, pos, "in literal " + literal + " (expecting '" + literal[i] + "')");
             }
         }
         pos += literal.Length;
@@ -401,7 +403,7 @@ internal static class Decoder
         return new SimpleError("unexpected EOF");
     }
 
-    private static JqException InvalidChar(string s, int pos, string context)
+    internal static JqException InvalidChar(string s, int pos, string context)
     {
         return new SimpleError("invalid character " + QuoteChar(s, pos) + " " + context);
     }

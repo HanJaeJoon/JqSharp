@@ -95,10 +95,14 @@ internal sealed class Env : IIter
     private int _offset;
     private int _expdepth;
     private int _label;
+    private readonly CancellationToken _token;
+    private readonly bool _cancellable;
 
-    public Env(Code[] codes, object? v, object?[] vars)
+    public Env(Code[] codes, object? v, object?[] vars, CancellationToken token)
     {
         _codes = codes;
+        _token = token;
+        _cancellable = token.CanBeCanceled;
         _stack.Push(v);
         for (int i = vars.Length - 1; i >= 0; i--)
         {
@@ -119,6 +123,11 @@ internal sealed class Env : IIter
         loop:
             for (; pc < _codes.Length; pc++)
             {
+                // Where gojq checks ctx.Done(): every instruction, so runaway recursion and loops stop too.
+                if (_cancellable)
+                {
+                    _token.ThrowIfCancellationRequested();
+                }
                 Code code = _codes[pc];
                 switch (code.Op)
                 {

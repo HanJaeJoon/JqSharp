@@ -66,6 +66,17 @@ public sealed class JqQuery
     }
 
     /// <summary>
+    /// Compiles and runs the query against one input value, stopping when <paramref name="cancellationToken"/> is canceled.
+    /// </summary>
+    /// <param name="input">The input value.</param>
+    /// <param name="cancellationToken">The token checked while the query runs; see <see cref="JqCode.Run(object?, CancellationToken, object?[])"/>.</param>
+    /// <returns>The output values, produced lazily.</returns>
+    public IEnumerable<object?> Run(object? input, CancellationToken cancellationToken)
+    {
+        return Compile().Run(input, cancellationToken);
+    }
+
+    /// <summary>
     /// Returns the query in jq syntax.
     /// </summary>
     public override string ToString()
@@ -77,6 +88,7 @@ public sealed class JqQuery
 
     internal void WriteTo(StringBuilder s)
     {
+        Jq.EnsureStack();
         if (Meta != null)
         {
             s.Append("module ");
@@ -236,6 +248,7 @@ internal sealed class Term
 
     public void WriteTo(StringBuilder s)
     {
+        Jq.EnsureStack();
         switch (Type)
         {
             case TermType.Identity:

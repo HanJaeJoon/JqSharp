@@ -6,8 +6,15 @@ namespace JqSharp;
 public sealed class JqCompilerOptions
 {
     /// <summary>
+    /// Creates options with the defaults: no variables, no environment, no inputs and no module loader.
+    /// </summary>
+    public JqCompilerOptions()
+    {
+    }
+
+    /// <summary>
     /// Names of the variables the query can use, each starting with <c>$</c>. Their values are passed to
-    /// <see cref="JqCode.Run"/> in the same order.
+    /// <see cref="JqCode.Run(object?, object?[])"/> in the same order.
     /// </summary>
     public IReadOnlyList<string>? Variables { get; set; }
 

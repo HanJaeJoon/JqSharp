@@ -318,6 +318,7 @@ internal static partial class Jq
 
     private static Dictionary<string, object?> DeepMergeObjects(Dictionary<string, object?> l, Dictionary<string, object?> r)
     {
+        EnsureStack();
         Dictionary<string, object?> m = new(l);
         foreach (KeyValuePair<string, object?> kv in r)
         {

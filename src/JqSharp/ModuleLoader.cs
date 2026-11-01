@@ -13,6 +13,10 @@ public interface IJqModuleLoader
     /// <summary>
     /// Loads a jq module.
     /// </summary>
+    /// <remarks>
+    /// Throw an exception when the module cannot be loaded; <see cref="JqQuery.Compile"/> lets it propagate.
+    /// Returning <see langword="null"/> is reported as <c>module not found</c>.
+    /// </remarks>
     /// <param name="name">The module path given in the directive.</param>
     /// <param name="meta">The metadata object of the directive, or <see langword="null"/>.</param>
     JqQuery LoadModule(string name, Dictionary<string, object?>? meta);
@@ -42,6 +46,10 @@ public sealed class JqModuleLoader : IJqModuleLoader
     /// <param name="paths">The directories; <c>~/</c> and <c>$ORIGIN/</c> prefixes are expanded.</param>
     public JqModuleLoader(IEnumerable<string> paths)
     {
+        if (paths is null)
+        {
+            throw new ArgumentNullException(nameof(paths));
+        }
         foreach (string path in paths)
         {
             string p = ResolvePath(path, "");
@@ -104,12 +112,13 @@ public sealed class JqModuleLoader : IJqModuleLoader
         }
         foreach (string dir in paths)
         {
-            string path = Path.Combine(dir, name + extension);
+            // Joined like Go's filepath.Join: a rooted name stays under dir instead of replacing it as in Path.Combine.
+            string path = dir + Path.DirectorySeparatorChar + name + extension;
             if (File.Exists(path))
             {
                 return path;
             }
-            path = Path.Combine(dir, name, Path.GetFileName(name) + extension);
+            path = dir + Path.DirectorySeparatorChar + name + Path.DirectorySeparatorChar + Path.GetFileName(name) + extension;
             if (File.Exists(path))
             {
                 return path;

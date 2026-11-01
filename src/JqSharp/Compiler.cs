@@ -106,8 +106,14 @@ internal sealed class Compiler
             Append(new Code(Opcode.Store, PushVariable(alias + "::" + alias.Substring(1))));
             return;
         }
-        JqQuery q = _moduleLoader.LoadModule(path, i.Meta?.ToValue());
+        JqQuery q = _moduleLoader.LoadModule(path, i.Meta?.ToValue()) ?? throw ModuleNotFound(path);
         CompileModule(q, alias);
+    }
+
+    // A custom loader returning null instead of throwing.
+    private static JqException ModuleNotFound(string name)
+    {
+        return new SimpleError("module not found: " + Encoder.Marshal(name));
     }
 
     private void CompileModule(JqQuery q, string alias)
@@ -332,6 +338,7 @@ internal sealed class Compiler
 
     private void CompileQuery(JqQuery e)
     {
+        Jq.EnsureStack();
         if (e.FuncDefs != null)
         {
             foreach (FuncDef fd in e.FuncDefs)
@@ -584,6 +591,7 @@ internal sealed class Compiler
 
     private void PushPatternVariables(List<VarRef> vs, Pattern p)
     {
+        Jq.EnsureStack();
         if (p.Name != "")
         {
             VarRef v = PushVariable(p.Name);
@@ -617,6 +625,7 @@ internal sealed class Compiler
 
     private void CompilePattern(List<VarRef>? vs, Pattern p)
     {
+        Jq.EnsureStack();
         if (p.Name != "")
         {
             Append(new Code(Opcode.Store, PushVariable(p.Name)));
@@ -880,6 +889,7 @@ internal sealed class Compiler
 
     private void CompileTerm(Term e)
     {
+        Jq.EnsureStack();
         if (e.SuffixList != null && e.SuffixList.Count > 0)
         {
             Suffix s = e.SuffixList[e.SuffixList.Count - 1];
@@ -1362,7 +1372,7 @@ internal sealed class Compiler
         JqQuery q;
         try
         {
-            q = _moduleLoader.LoadModule(s, null);
+            q = _moduleLoader.LoadModule(s, null) ?? throw ModuleNotFound(s);
         }
         catch (JqException err)
         {
