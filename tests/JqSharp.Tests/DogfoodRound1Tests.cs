@@ -18,6 +18,21 @@ public class DogfoodRound1Tests
         return v;
     }
 
+    // The depth guard trips relative to the stack size; pin 1 MB so Linux (8 MB default) behaves like Windows.
+    private static void AssertThrowsOnSmallStack(Action action)
+    {
+        Exception? caught = null;
+        var thread = new Thread(() =>
+        {
+            try { action(); }
+            catch (Exception e) { caught = e; }
+        }, 1024 * 1024);
+        thread.Start();
+        thread.Join();
+
+        Assert.IsAssignableFrom<JqException>(caught);
+    }
+
     [Fact]
     public void Should_RestartQuery_When_ResultsAreEnumeratedTwice()
     {
@@ -50,8 +65,8 @@ public class DogfoodRound1Tests
     {
         object? deep = Nest(100000);
 
-        Assert.ThrowsAny<JqException>(() => JqValue.ToJson(deep));
-        Assert.ThrowsAny<JqException>(() => JqQuery.Parse(".").Run(deep).ToList());
+        AssertThrowsOnSmallStack(() => JqValue.ToJson(deep));
+        AssertThrowsOnSmallStack(() => JqQuery.Parse(".").Run(deep).ToList());
     }
 
     [Theory]
@@ -64,17 +79,7 @@ public class DogfoodRound1Tests
     [InlineData("null | setpath([range(100000) | 0]; 1) | length")]
     public void Should_ThrowJqException_When_QueryBuildsTooDeepValue(string src)
     {
-        // Pin a 1 MB stack: Linux's 8 MB default lets some of these finish instead of hitting the guard.
-        Exception? caught = null;
-        var thread = new Thread(() =>
-        {
-            try { JqQuery.Parse(src).Run(null).ToList(); }
-            catch (Exception e) { caught = e; }
-        }, 1024 * 1024);
-        thread.Start();
-        thread.Join();
-
-        Assert.IsAssignableFrom<JqException>(caught);
+        AssertThrowsOnSmallStack(() => JqQuery.Parse(src).Run(null).ToList());
     }
 
     [Theory]
@@ -86,7 +91,7 @@ public class DogfoodRound1Tests
     {
         string src = string.Concat(Enumerable.Repeat(open, depth)) + string.Concat(Enumerable.Repeat(close, close == "." ? 1 : depth));
 
-        Assert.ThrowsAny<JqException>(() => JqQuery.Parse(src).Compile());
+        AssertThrowsOnSmallStack(() => JqQuery.Parse(src).Compile());
     }
 
     [Fact]
