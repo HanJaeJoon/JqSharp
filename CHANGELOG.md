@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-01
+
 ### Added
 
 - Initial C# port of gojq: the jq lexer, parser, compiler, bytecode interpreter and builtins, with
@@ -36,3 +38,6 @@ Found in dogfooding round 1 (`docs/dogfooding/round1.md`):
   The `fromjson` builtin keeps gojq's message.
 - A custom `IJqModuleLoader` returning `null` from `LoadModule` caused a `NullReferenceException`; it is now
   reported as `module not found`.
+
+[Unreleased]: https://github.com/HanJaeJoon/JqSharp/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/HanJaeJoon/JqSharp/releases/tag/v0.1.0
