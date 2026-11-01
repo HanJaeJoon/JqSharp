@@ -64,7 +64,17 @@ public class DogfoodRound1Tests
     [InlineData("null | setpath([range(100000) | 0]; 1) | length")]
     public void Should_ThrowJqException_When_QueryBuildsTooDeepValue(string src)
     {
-        Assert.ThrowsAny<JqException>(() => JqQuery.Parse(src).Run(null).ToList());
+        // Pin a 1 MB stack: Linux's 8 MB default lets some of these finish instead of hitting the guard.
+        Exception? caught = null;
+        var thread = new Thread(() =>
+        {
+            try { JqQuery.Parse(src).Run(null).ToList(); }
+            catch (Exception e) { caught = e; }
+        }, 1024 * 1024);
+        thread.Start();
+        thread.Join();
+
+        Assert.IsAssignableFrom<JqException>(caught);
     }
 
     [Theory]
