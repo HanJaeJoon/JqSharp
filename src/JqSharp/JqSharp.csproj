@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net8.0;net10.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>0.1.0</Version>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Authors>HanJaeJoon</Authors>
+    <Description>A pure C# implementation of the jq JSON filter language, ported from gojq.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/HanJaeJoon/JqSharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/HanJaeJoon/JqSharp.git</RepositoryUrl>
+    <PackageTags>jq, gojq, JSON, query, filter, CSharp, .NET</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <Copyright>Copyright (c) HanJaeJoon</Copyright>
+    <PackageReleaseNotes>See https://github.com/HanJaeJoon/JqSharp/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <!-- SourceLink: lets package consumers step into the GitHub sources while debugging -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Generates the types newer C# features need on netstandard at compile time (no runtime dependency) -->
+    <PackageReference Include="PolySharp" Version="1.15.0" PrivateAssets="all" Condition="$(TargetFramework.StartsWith('netstandard'))" />
+    <!-- netstandard2.0 has no Span<T>/ReadOnlySpan<T> (inbox from 2.1) -->
+    <PackageReference Include="System.Memory" Version="4.6.3" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Lets the tests reach the internal decoder, encoder and time zone hook -->
+    <InternalsVisibleTo Include="JqSharp.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The jq-defined builtins, parsed once on first use -->
+    <EmbeddedResource Include="builtin.jq" LogicalName="JqSharp.builtin.jq" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
